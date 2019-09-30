@@ -1,14 +1,11 @@
 package com.example.camerademo
 
 import android.app.Application
+import android.os.AsyncTask
 import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -28,25 +25,57 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _loading.value = false
     }
 
-    suspend fun handleVideo(video: File) {
-        var savePath = "video"
-        if (numFiles != 0) {
-            savePath += "_$numFiles"
-        }
+    fun handleVideo(video: File) {
+        _loading.value = true
+        var savePath = "video_$numFiles"
         savePath += ".mp4"
         if (filePath.isEmpty()) {
             filePath = savePath
         }
         numFiles++
         val outFile = File(saveDir, savePath)
+        val saveTask = SaveVideoTask {
+            _loading.value = false
+        }
+        saveTask.execute(video, outFile)
+    }
+
+    fun processVideos() {
         _loading.value = true
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                video.copyTo(outFile, true)
-                withContext(Dispatchers.Main) {
-                    _loading.value = false
-                }
-            }
+        val saveTask = MergeVideoTask(numFiles, saveDir!!) {
+            _loading.value = false
+        }
+        saveTask.execute()
+    }
+
+    class MergeVideoTask(
+        val numFiles: Int,
+        val saveDir: File,
+        val callback: () -> Unit
+    ) : AsyncTask<Void, Void, Void>() {
+        override fun doInBackground(vararg p0: Void?): Void? {
+            val savePath = "video"
+
+            return null
+        }
+
+        override fun onPostExecute(result: Void?) {
+            super.onPostExecute(result)
+            callback()
+        }
+    }
+
+    class SaveVideoTask(val callback: () -> Unit) : AsyncTask<File, Void, Void>() {
+        override fun doInBackground(vararg files: File?): Void? {
+            val video = files[0]
+            val outFile = files[1]
+            video!!.copyTo(outFile!!, true)
+            return null
+        }
+
+        override fun onPostExecute(result: Void?) {
+            super.onPostExecute(result)
+            callback()
         }
     }
 }

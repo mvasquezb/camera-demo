@@ -6,6 +6,8 @@ import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -16,9 +18,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val context = getApplication<Application>().applicationContext
 
-    val saveDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+    val saveDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
 
-    val _loading = MutableLiveData<Boolean>()
+    private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> = _loading
 
     init {
@@ -40,28 +42,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         saveTask.execute(video, outFile)
     }
 
-    fun processVideos() {
+    suspend fun processVideos() {
         _loading.value = true
-        val saveTask = MergeVideoTask(numFiles, saveDir!!) {
-            _loading.value = false
-        }
-        saveTask.execute()
-    }
-
-    class MergeVideoTask(
-        val numFiles: Int,
-        val saveDir: File,
-        val callback: () -> Unit
-    ) : AsyncTask<Void, Void, Void>() {
-        override fun doInBackground(vararg p0: Void?): Void? {
-            val savePath = "video"
-
-            return null
-        }
-
-        override fun onPostExecute(result: Void?) {
-            super.onPostExecute(result)
-            callback()
+        withContext(Dispatchers.IO) {
+            val files = (0 until numFiles).map {
+                File(saveDir, "video_$it.mp4").absolutePath
+            }
+            val output = FFmpegManager.concat(files, saveDir)
+            val saveFile = File(saveDir, "video.mp4")
+            output.copyTo(saveFile, true)
+            withContext(Dispatchers.Main) {
+                _loading.value = false
+            }
         }
     }
 

@@ -64,7 +64,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         finishButton.setOnClickListener {
-            viewModel.processVideos()
+            lifecycleScope.launch {
+                viewModel.processVideos()
+            }
         }
     }
 
@@ -72,7 +74,9 @@ class MainActivity : AppCompatActivity() {
         playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_pause))
         camera.captureVideo { video ->
             Log.d(TAG, "video captured")
-            viewModel.handleVideo(video.videoFile)
+            lifecycleScope.launch {
+                viewModel.handleVideo(video.videoFile)
+            }
         }
         isRecording = true
     }

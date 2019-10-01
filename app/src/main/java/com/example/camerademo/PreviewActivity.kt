@@ -35,6 +35,7 @@ class PreviewActivity : AppCompatActivity() {
         }
 
         videoPlayer.setVideoPath(videoPath)
+        videoPlayer.setOnPreparedListener { it.isLooping = true }
         videoPlayer.start()
     }
 

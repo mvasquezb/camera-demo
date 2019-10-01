@@ -11,18 +11,18 @@ import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var filePath = ""
+    var savedPath = ""
     private var numFiles = 0
 
     val context = getApplication<Application>().applicationContext
 
     val saveDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
 
-    private val _loading = MutableLiveData<Boolean>()
+    private val _loading = MutableLiveData<Boolean>().apply { value = false }
     val loading: LiveData<Boolean> = _loading
 
-    init {
-        _loading.value = false
-    }
+    private val _previewReady = MutableLiveData<Boolean>().apply { value = false }
+    val previewReady: LiveData<Boolean> = _previewReady
 
     suspend fun handleVideo(video: File) {
         _loading.value = true
@@ -50,8 +50,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val output = FFmpegManager.concat(files, saveDir)
             val saveFile = File(saveDir, "video.mp4")
             output.copyTo(saveFile, true)
+            savedPath = saveFile.absolutePath
             withContext(Dispatchers.Main) {
                 _loading.value = false
+                _previewReady.value = true
             }
         }
     }

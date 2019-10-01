@@ -38,4 +38,45 @@ object FFmpegManager {
         FFmpeg.execute(args.toTypedArray())
         return tempFile
     }
+
+    fun muxVideoAudio(video: File, audio: File, saveDir: File): File {
+        val args = mutableListOf<String>().apply {
+            add("-i")
+            add(video.absolutePath)
+            add("-i")
+            add(audio.absolutePath)
+            add("-c")
+            add("copy")
+            add("-shortest")
+        }
+        val outFile = createTempFile(directory = saveDir, suffix = ".mp4")
+        args.add(outFile.absolutePath)
+        FFmpeg.execute(args.toTypedArray())
+        return outFile
+    }
+
+    fun demuxVideoAudio(video: File, saveDir: File): Map<String, File> {
+        val audioTrack = createTempFile(directory = saveDir, suffix = ".m4a")
+        val videoTrack = createTempFile(directory = saveDir, suffix = ".mp4")
+
+        val args = mutableListOf<String>().apply {
+            add("-i")
+            add(video.absolutePath)
+            add("-c:v")
+            add("copy")
+            add("-map")
+            add("0:0")
+            add(videoTrack.absolutePath)
+            add("-c:a")
+            add("copy")
+            add("-map")
+            add("0:1")
+            add(audioTrack.absolutePath)
+        }
+        FFmpeg.execute(args.toTypedArray())
+        return mapOf(
+            "video" to videoTrack,
+            "audio" to audioTrack
+        )
+    }
 }

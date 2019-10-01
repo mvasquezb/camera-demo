@@ -1,6 +1,7 @@
 package com.example.camerademo
 
 import android.content.Context
+import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -34,6 +35,17 @@ class MainActivity : AppCompatActivity() {
             when (loading) {
                 true -> loadingBar.visibility = View.VISIBLE
                 else -> loadingBar.visibility = View.GONE
+            }
+        })
+        viewModel.previewReady.observe(this, Observer<Boolean> {
+            when (it) {
+                true -> {
+                    val intent = Intent(this, PreviewActivity::class.java).apply {
+                        putExtra("video", viewModel.savedPath)
+                        putExtra("saveDir", viewModel.saveDir.absolutePath)
+                    }
+                    startActivity(intent)
+                }
             }
         })
     }

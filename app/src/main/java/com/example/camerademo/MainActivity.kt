@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         finishButton.setOnClickListener {
+            stopRecording()
             lifecycleScope.launch {
                 viewModel.processVideos()
             }

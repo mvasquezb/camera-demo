@@ -1,7 +1,6 @@
 package com.example.camerademo
 
 import android.app.Application
-import android.os.AsyncTask
 import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -11,9 +10,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
-    var filePath = ""
-        private set
-
+    private var filePath = ""
     private var numFiles = 0
 
     val context = getApplication<Application>().applicationContext
@@ -27,7 +24,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _loading.value = false
     }
 
-    fun handleVideo(video: File) {
+    suspend fun handleVideo(video: File) {
         _loading.value = true
         var savePath = "video_$numFiles"
         savePath += ".mp4"
@@ -36,10 +33,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         numFiles++
         val outFile = File(saveDir, savePath)
-        val saveTask = SaveVideoTask {
-            _loading.value = false
+        withContext(Dispatchers.IO) {
+            video.copyTo(outFile, true)
+            withContext(Dispatchers.Main) {
+                _loading.value = false
+            }
         }
-        saveTask.execute(video, outFile)
     }
 
     suspend fun processVideos() {
@@ -54,20 +53,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.Main) {
                 _loading.value = false
             }
-        }
-    }
-
-    class SaveVideoTask(val callback: () -> Unit) : AsyncTask<File, Void, Void>() {
-        override fun doInBackground(vararg files: File?): Void? {
-            val video = files[0]
-            val outFile = files[1]
-            video!!.copyTo(outFile!!, true)
-            return null
-        }
-
-        override fun onPostExecute(result: Void?) {
-            super.onPostExecute(result)
-            callback()
         }
     }
 }

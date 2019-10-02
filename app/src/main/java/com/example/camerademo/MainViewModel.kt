@@ -23,14 +23,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _previewReady = MutableLiveData<Boolean>().apply { value = false }
     val previewReady: LiveData<Boolean> = _previewReady
 
-    suspend fun handleVideo() {
+    suspend fun handleVideo(video: File) {
         _loading.value = true
-//        val savePath = getVideoFilePath()
-//        val video = File(savePath)
+        val savePath = getVideoFilePath()
         numFiles++
-//        val outFile = File(saveDir, savePath)
+        val outFile = File(savePath)
         withContext(Dispatchers.IO) {
-//            video.copyTo(outFile, true)
+            video.copyTo(outFile, true)
             withContext(Dispatchers.Main) {
                 _loading.value = false
             }

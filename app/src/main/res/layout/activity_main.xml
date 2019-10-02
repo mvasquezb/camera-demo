@@ -19,22 +19,20 @@
         android:textSize="20sp"
         android:textStyle="bold"/>
 
-    <com.wonderkiln.camerakit.CameraView
-        android:id="@+id/camera"
-        android:layout_width="match_parent"
+    <com.example.camerademo.AutofitTextureView
+        android:id="@+id/textureView"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:adjustViewBounds="true"
-        app:ckFacing="front"
-        app:layout_constraintTop_toBottomOf="@id/title"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title" />
 
     <ImageButton
         android:id="@+id/playButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_media_play"
-        app:layout_constraintTop_toBottomOf="@id/camera"
+        app:layout_constraintTop_toBottomOf="@id/textureView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"

@@ -10,7 +10,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
-    private var filePath = ""
     var savedPath = ""
     private var numFiles = 0
 
@@ -24,17 +23,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _previewReady = MutableLiveData<Boolean>().apply { value = false }
     val previewReady: LiveData<Boolean> = _previewReady
 
-    suspend fun handleVideo(video: File) {
+    suspend fun handleVideo() {
         _loading.value = true
-        var savePath = "video_$numFiles"
-        savePath += ".mp4"
-        if (filePath.isEmpty()) {
-            filePath = savePath
-        }
+//        val savePath = getVideoFilePath()
+//        val video = File(savePath)
         numFiles++
-        val outFile = File(saveDir, savePath)
+//        val outFile = File(saveDir, savePath)
         withContext(Dispatchers.IO) {
-            video.copyTo(outFile, true)
+//            video.copyTo(outFile, true)
             withContext(Dispatchers.Main) {
                 _loading.value = false
             }
@@ -56,5 +52,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 _previewReady.value = true
             }
         }
+    }
+
+    fun getVideoFilePath(): String {
+        return "${saveDir.absolutePath}/video_$numFiles.mp4"
     }
 }

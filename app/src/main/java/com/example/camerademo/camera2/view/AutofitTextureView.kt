@@ -1,10 +1,10 @@
-package com.example.camerademo
+package com.example.camerademo.view
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.TextureView
 
-class AutofitTextureView @JvmOverloads constructor(
+open class AutofitTextureView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0

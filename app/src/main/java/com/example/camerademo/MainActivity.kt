@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         @JvmStatic val TAG = MainActivity::class.java.simpleName
     }
 
+    private lateinit var manager: CameraManager
     private var isRecording = false
     private lateinit var viewModel: MainViewModel
     private lateinit var audioManager: AudioManager
@@ -199,12 +200,12 @@ class MainActivity : AppCompatActivity() {
         val cameraActivity = this
         if (cameraActivity.isFinishing) return
 
-        val manager = cameraActivity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        manager = cameraActivity.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         try {
             if (!cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw RuntimeException("Time out waiting to lock camera opening.")
             }
-            val cameraId = manager.cameraIdList[0]
+            val cameraId = CameraHelper.getDefaultFrontCamera(manager)
 
             // Choose the sizes for camera preview and video recording
             val characteristics = manager.getCameraCharacteristics(cameraId)
@@ -391,11 +392,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupVideoRecording() {
         playButton.setOnClickListener {
-            if (!isRecording) {
-                startRecording()
-            } else {
-                stopRecording()
-            }
+            toggleRecording()
         }
         finishButton.setOnClickListener {
             if (isRecording) {
@@ -404,6 +401,14 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 viewModel.processVideos()
             }
+        }
+    }
+
+    private fun toggleRecording() {
+        if (!isRecording) {
+            startRecording()
+        } else {
+            stopRecording()
         }
     }
 }

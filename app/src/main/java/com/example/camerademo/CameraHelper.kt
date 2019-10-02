@@ -80,7 +80,7 @@ object CameraHelper {
      * @return the default rear/back facing camera on the device. Returns null if camera is not
      * available.
      */
-    fun getDefaultBackFacingCameraInstance(manager: CameraManager): String {
+    fun getDefaultBackCamera(manager: CameraManager): String {
         return manager.cameraIdList[0]
     }
 
@@ -88,7 +88,7 @@ object CameraHelper {
      * @return the default front facing camera on the device. Returns null if camera is not
      * available.
      */
-    fun getDefaultFrontFacingCameraInstance(manager: CameraManager): String {
+    fun getDefaultFrontCamera(manager: CameraManager): String {
         return manager.cameraIdList[1]
     }
 

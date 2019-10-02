@@ -1,4 +1,4 @@
-package com.example.camerademo.view
+package com.example.camerademo.camera2.view
 
 import android.content.Context
 import android.util.AttributeSet

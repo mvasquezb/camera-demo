@@ -52,51 +52,22 @@ open class CameraView @JvmOverloads constructor(
         ) ?: Defaults.DEFAULT_FACING
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-//        if (adjustViewBounds) {
-//            val previewSize = getPreviewSize()
-//            if (previewSize != null) {
-//                if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT) {
-//                    val height = MeasureSpec.getSize(heightMeasureSpec)
-//                    val ratio = height.toFloat() / previewSize.height.toFloat()
-//                    val width = (previewSize.width * ratio).toInt()
-//                    super.onMeasure(
-//                        MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-//                        heightMeasureSpec
-//                    )
-//                    return
-//                } else if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) {
-//                    val width = MeasureSpec.getSize(widthMeasureSpec)
-//                    val ratio = width.toFloat() / previewSize.width.toFloat()
-//                    val height = (previewSize.height * ratio).toInt()
-//                    super.onMeasure(
-//                        widthMeasureSpec,
-//                        MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-//                    )
-//                    return
-//                }
-//            } else {
-//                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-//                return
-//            }
-//        }
-
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    }
-
-    private fun getPreviewSize(): Size? = cameraHelper.getPreviewSize(size)
-
     fun start() {
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
         if (isAvailable) {
-            cameraHelper.getPreviewSize(size)
+            updatePreviewSize()
             cameraHelper.start()
         } else {
             surfaceTextureListener = textureListener
         }
+    }
+
+    private fun updatePreviewSize() {
+        val previewSize = cameraHelper.getPreviewSize(size)
+        previewSize?.let { setAspectRatio(it.width, it.height) }
     }
 
     fun stop() {

@@ -3,14 +3,18 @@ package com.example.camerademo.camera2
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.content.Context
+import android.graphics.Camera
+import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
+import android.hardware.camera2.params.RecommendedStreamConfigurationMap
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.view.Surface
 import android.view.TextureView
@@ -22,6 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 
 class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
@@ -127,12 +132,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
 
         // Supported video sizes list might be null, it means that we are allowed to use the preview
         // sizes
-        val videoSizes: List<Size>
-        if (supportedVideoSizes != null) {
-            videoSizes = supportedVideoSizes
-        } else {
-            videoSizes = previewSizes
-        }
+        val videoSizes = supportedVideoSizes ?: previewSizes
         var optimalSize: Size? = null
 
         // Start with max value and refine as we iterate over available video sizes. This is the
@@ -218,8 +218,51 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
      * @param choices The list of available sizes
      * @return The video size
      */
-    fun chooseVideoSize(choices: Array<Size>) = choices.firstOrNull {
-        it.width == it.height * 4 / 3 && it.width <= 1080} ?: choices[choices.size - 1]
+//    fun chooseVideoSize(choices: Array<Size>) = choices.firstOrNull {
+//        it.width == it.height * 4 / 3 && it.width <= 1080} ?: choices[choices.size - 1]
+    fun chooseVideoSize(choices: Array<Size>, size: Size): Size {
+        // Use a very small tolerance because we want an exact match.
+        val ASPECT_TOLERANCE = 0.1
+        val width = size.width
+        val height = size.height
+        val targetRatio = width.toDouble() / height
+
+        // Supported video sizes list might be null, it means that we are allowed to use the preview
+        // sizes
+        val videoSizes = choices.toList()
+        var optimalSize: Size? = null
+
+        // Start with max value and refine as we iterate over available video sizes. This is the
+        // minimum difference between view and camera height.
+        var minDiff = java.lang.Double.MAX_VALUE
+
+        // Target view height
+
+        // Try to find a video size that matches aspect ratio and the target view size.
+        // Iterate over all available sizes and pick the largest size that can fit in the view and
+        // still maintain the aspect ratio.
+        for (size in videoSizes) {
+            val ratio = width.toDouble() / height
+            if (abs(ratio - targetRatio) > ASPECT_TOLERANCE)
+                continue
+            if (abs(size.height - height) < minDiff) {
+                optimalSize = size
+                minDiff = abs(size.height - height).toDouble()
+            }
+        }
+
+        // Cannot find video size that matches the aspect ratio, ignore the requirement
+        if (optimalSize == null) {
+            minDiff = java.lang.Double.MAX_VALUE
+            for (size in videoSizes) {
+                if (abs(size.height - height) < minDiff) {
+                    optimalSize = size
+                    minDiff = abs(size.height - height).toDouble()
+                }
+            }
+        }
+        return optimalSize!!
+    }
 
     /**
      * Given [choices] of [Size]s supported by a camera, chooses the smallest one whose
@@ -312,13 +355,14 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
 
         // Choose the sizes for camera preview and video recording
         val characteristics = manager.getCameraCharacteristics(cameraId)
-        val map = characteristics.get(
-            CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?:
-            throw RuntimeException("Cannot get available preview/video sizes")
+        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            ?: throw RuntimeException("Could not get camera config map")
 
-        videoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder::class.java))
+        videoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder::class.java), size)
+        Log.d(TAG, "videoSize: $videoSize")
         previewSize = chooseOptimalSize(
-            map.getOutputSizes(SurfaceTexture::class.java), size.width, size.height, videoSize)
+            map.getOutputSizes(SurfaceTexture::class.java), size.height, size.width, videoSize)
+        Log.d(TAG, "previewSize: $previewSize")
 
         return previewSize
     }
@@ -349,6 +393,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
             }
             cameraId = getActualCameraId() ?: throw RuntimeException("No camera available")
             manager.openCamera(cameraId, stateCallback, null)
+            getPreviewSize(previewSize)
         } catch (e: CameraAccessException) {
             eventDispatcher.dispatch(Error(e))
         } catch (e: NullPointerException) {

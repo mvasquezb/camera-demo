@@ -4,7 +4,8 @@ import com.arthenica.mobileffmpeg.FFmpeg
 import java.io.File
 
 object FFmpegManager {
-    fun concat(filePaths: List<String>, saveDir: File): File {
+    @JvmOverloads
+    fun concat(filePaths: List<String>, saveDir: File, extension: String = ".mp4"): File {
         // Add input files
         val args = mutableListOf<String>().apply{
             addAll(arrayOf(
@@ -14,7 +15,7 @@ object FFmpegManager {
                 "0"
             ))
         }
-        val tmpFilePaths = File(saveDir, "lists.txt")
+        val tmpFilePaths = createTempFile(directory = saveDir, suffix = ".txt")
         val outStream = tmpFilePaths.outputStream()
         val writer = outStream.writer()
         filePaths.forEach {
@@ -32,7 +33,7 @@ object FFmpegManager {
         }
 
         // Temporary output file
-        val tempFile = createTempFile(suffix = ".mp4", directory = saveDir)
+        val tempFile = createTempFile(suffix = extension, directory = saveDir)
         args.add(tempFile.absolutePath)
 
         FFmpeg.execute(args.toTypedArray())

@@ -80,12 +80,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun stopRecording() {
-        isRecording = false
-        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
-        camera.stopVideo()
-    }
-
     private fun toggleRecording() {
         if (!isRecording) {
             startRecording()
@@ -103,5 +97,11 @@ class MainActivity : AppCompatActivity() {
                 showToast("Video saved: ${viewModel.getVideoFilePath()}")
             }
         }
+    }
+
+    private fun stopRecording() {
+        isRecording = false
+        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
+        camera.stopVideo()
     }
 }

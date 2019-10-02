@@ -32,7 +32,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
         @JvmStatic val MEDIA_TYPE_VIDEO = 2
     }
 
-    private lateinit var videoCallback: VideoCallback
+    private var videoCallback: VideoCallback? = null
     private lateinit var outputVideoFile: File
     lateinit var texture: TextureView
     private var cameraId: String = ""
@@ -348,7 +348,6 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
                 throw RuntimeException("Time out waiting to lock camera opening.")
             }
             cameraId = getActualCameraId() ?: throw RuntimeException("No camera available")
-            mediaRecorder = MediaRecorder()
             manager.openCamera(cameraId, stateCallback, null)
         } catch (e: CameraAccessException) {
             eventDispatcher.dispatch(Error(e))
@@ -371,6 +370,9 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     }
 
     fun stop() {
+        if (videoCallback != null) {
+            stopRecording()
+        }
         closeCamera()
         stopBackgroundThread()
     }
@@ -463,6 +465,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
 
     @Throws(IOException::class)
     private fun setUpMediaRecorder() {
+        mediaRecorder = MediaRecorder()
         mediaRecorder?.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
@@ -530,12 +533,17 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
         captureSession = null
     }
 
-    fun stopVideo() {
+    private fun stopRecording() {
         mediaRecorder?.apply {
             stop()
             reset()
         }
-        videoCallback(outputVideoFile)
+    }
+
+    fun stopVideo() {
+        stopRecording()
+        videoCallback?.invoke(outputVideoFile)
+        videoCallback = null
         startPreview()
     }
 }

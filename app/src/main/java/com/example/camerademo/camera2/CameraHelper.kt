@@ -2,20 +2,18 @@ package com.example.camerademo.camera2
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.app.Activity
 import android.content.Context
-import android.graphics.Camera
-import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
-import android.hardware.camera2.params.RecommendedStreamConfigurationMap
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
-import android.util.Range
 import android.util.Size
+import android.util.SparseIntArray
 import android.view.Surface
 import android.view.TextureView
 import com.example.camerademo.camera2.events.Error
@@ -35,6 +33,21 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
         @JvmStatic val TAG = CameraHelper::class.java.simpleName
         @JvmStatic val MEDIA_TYPE_IMAGE = 1
         @JvmStatic val MEDIA_TYPE_VIDEO = 2
+
+        private const val SENSOR_ORIENTATION_DEFAULT_DEGREES = 90
+        private const val SENSOR_ORIENTATION_INVERSE_DEGREES = 270
+        private val DEFAULT_ORIENTATIONS = SparseIntArray().apply {
+            append(Surface.ROTATION_0, 90)
+            append(Surface.ROTATION_90, 0)
+            append(Surface.ROTATION_180, 270)
+            append(Surface.ROTATION_270, 180)
+        }
+        private val INVERSE_ORIENTATIONS = SparseIntArray().apply {
+            append(Surface.ROTATION_0, 270)
+            append(Surface.ROTATION_90, 180)
+            append(Surface.ROTATION_180, 90)
+            append(Surface.ROTATION_270, 0)
+        }
     }
 
     private var videoCallback: VideoCallback? = null
@@ -110,6 +123,11 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
      * A [Semaphore] to prevent the app from exiting before closing the camera.
      */
     private val cameraOpenCloseLock = Semaphore(1)
+
+    /**
+     * Orientation of the camera sensor
+     */
+    private var sensorOrientation = 0
 
     /**
      * Iterate over supported camera video sizes to see which one best fits the
@@ -358,6 +376,8 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
         val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             ?: throw RuntimeException("Could not get camera config map")
 
+        sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+
         videoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder::class.java), size)
         Log.d(TAG, "videoSize: $videoSize")
         previewSize = chooseOptimalSize(
@@ -511,6 +531,13 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     @Throws(IOException::class)
     private fun setUpMediaRecorder() {
         mediaRecorder = MediaRecorder()
+        val rotation = (context as Activity).windowManager.defaultDisplay.rotation
+        when (sensorOrientation) {
+            SENSOR_ORIENTATION_DEFAULT_DEGREES ->
+                mediaRecorder?.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation))
+            SENSOR_ORIENTATION_INVERSE_DEGREES ->
+                mediaRecorder?.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation))
+        }
         mediaRecorder?.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)

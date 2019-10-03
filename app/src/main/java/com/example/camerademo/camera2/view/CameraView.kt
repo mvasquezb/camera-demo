@@ -1,20 +1,19 @@
 package com.example.camerademo.camera2.view
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.util.AttributeSet
-import android.util.Log
 import android.util.Size
 import android.view.Surface
-import com.example.camerademo.camera2.CameraHelper
 import com.example.camerademo.R
+import com.example.camerademo.activity
+import com.example.camerademo.camera2.CameraHelper
 import com.example.camerademo.camera2.Defaults
-import com.example.camerademo.camera2.events.EventDispatcher
-import com.example.camerademo.camera2.events.CameraEventListener
 import com.example.camerademo.camera2.VideoCallback
+import com.example.camerademo.camera2.events.CameraEventListener
+import com.example.camerademo.camera2.events.EventDispatcher
 import kotlin.math.max
 
 open class CameraView @JvmOverloads constructor(
@@ -90,7 +89,7 @@ open class CameraView @JvmOverloads constructor(
      * @param viewHeight The height of `textureView`
      */
     private fun configureTransform(viewWidth: Int, viewHeight: Int, previewSize: Size) {
-        val rotation = (context as Activity).windowManager.defaultDisplay.rotation
+        val rotation = activity?.let { it.windowManager.defaultDisplay.rotation }
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
         val bufferRect = RectF(0f, 0f, previewSize.height.toFloat(), previewSize.width.toFloat())

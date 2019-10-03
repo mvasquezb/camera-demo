@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <declare-styleable name="KS">
-        <attr name="facing" format="enum">
-            <enum name="back" value="1" />
+    <declare-styleable name="CameraView">
+        <attr name="camFacing" format="enum">
+            <enum name="back" value="0" />
             <enum name="front" value="1" />
         </attr>
         <attr name="android:adjustViewBounds" />

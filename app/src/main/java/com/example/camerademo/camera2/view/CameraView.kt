@@ -6,6 +6,7 @@ import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.util.AttributeSet
+import android.util.Log
 import android.util.Size
 import android.view.Surface
 import com.example.camerademo.camera2.CameraHelper
@@ -25,11 +26,12 @@ open class CameraView @JvmOverloads constructor(
     private val eventDispatcher = EventDispatcher()
     private lateinit var size: Size
 
-    private var adjustViewBounds: Boolean = attrs?.getAttributeBooleanValue(
-        R.styleable.KS_android_adjustViewBounds, Defaults.DEFAULT_ADJUST_BOUNDS
-    ) ?: Defaults.DEFAULT_ADJUST_BOUNDS
+    private val styledAttrs = context.obtainStyledAttributes(attrs, R.styleable.CameraView)
 
-    private var facing: Int = 0
+    private var adjustViewBounds = styledAttrs.getBoolean(
+        R.styleable.CameraView_android_adjustViewBounds, Defaults.DEFAULT_ADJUST_BOUNDS)
+
+    var facing: Int = 0
         set(value) {
             cameraHelper.facing = value
             field = value
@@ -54,10 +56,8 @@ open class CameraView @JvmOverloads constructor(
     }
 
     init {
+        facing = styledAttrs.getInt(R.styleable.CameraView_camFacing, Defaults.DEFAULT_FACING)
         surfaceTextureListener = textureListener
-        facing = attrs?.getAttributeIntValue(
-            R.styleable.KS_facing, Defaults.DEFAULT_FACING
-        ) ?: Defaults.DEFAULT_FACING
     }
 
     fun start() {

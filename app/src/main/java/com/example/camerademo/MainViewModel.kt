@@ -10,6 +10,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
+    val song = Song.defaultSong
+
     var savedPath = ""
     private var numFiles = 0
 
@@ -22,6 +24,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _previewReady = MutableLiveData<Boolean>().apply { value = false }
     val previewReady: LiveData<Boolean> = _previewReady
+
+    var currentPosition: Int = 0
 
     suspend fun handleVideo(video: File) {
         _loading.value = true

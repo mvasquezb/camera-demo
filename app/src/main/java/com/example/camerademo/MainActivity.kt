@@ -1,6 +1,7 @@
 package com.example.camerademo
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -23,12 +24,17 @@ class MainActivity : AppCompatActivity() {
 
     private var isRecording = false
     private lateinit var viewModel: MainViewModel
+    private var songPlayer: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        setupVideoRecording()
+
         viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
+
+        setupVideoRecording()
+        setupSongPlayer()
+
         viewModel.loading.observe(this, Observer<Boolean> { loading ->
             when (loading) {
                 true -> loadingBar.visibility = View.VISIBLE
@@ -48,14 +54,51 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupSongPlayer() {
+        songPlayer = MediaPlayer().apply {
+            setDataSource(viewModel.song.mp3)
+            prepare()
+            if (viewModel.currentPosition != 0) {
+                seekTo(viewModel.currentPosition)
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         camera.start()
+        setupSongPlayer()
     }
 
     override fun onPause() {
+        toggleRecordingUI()
+        stopSongPlayer()
         camera.stop()
         super.onPause()
+    }
+
+    private fun stopSongPlayer(reset: Boolean = true) {
+        songPlayer?.runCatching {
+            viewModel.currentPosition = currentPosition
+            stop()
+            if (reset) {
+                reset()
+            }
+            release()
+        }
+        songPlayer = null
+    }
+
+    private fun pauseSongPlayer() {
+        songPlayer?.runCatching {
+            pause()
+        }
+    }
+
+    private fun startSongPlayer() {
+        songPlayer?.runCatching {
+            start()
+        }
     }
 
     private fun showToast(message : String) = Toast.makeText(this, message, LENGTH_SHORT).show()
@@ -65,12 +108,7 @@ class MainActivity : AppCompatActivity() {
             toggleRecording()
         }
         finishButton.setOnClickListener {
-            if (isRecording) {
-                stopRecording()
-            }
-            lifecycleScope.launch {
-                viewModel.processVideos()
-            }
+            finishRecording()
         }
         camera.addEventListener(object : CameraEventListener {
             override fun onError(error: Error) {
@@ -80,17 +118,26 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun finishRecording() {
+        if (isRecording) {
+            stopRecording()
+        }
+        lifecycleScope.launch {
+            viewModel.processVideos()
+        }
+    }
+
     private fun toggleRecording() {
         if (!isRecording) {
             startRecording()
         } else {
-            stopRecording()
+            pauseRecording()
         }
     }
 
     private fun startRecording() {
-        isRecording = true
-        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_pause))
+        toggleRecordingUI()
+        startSongPlayer()
         camera.startVideo { video ->
             lifecycleScope.launch {
                 viewModel.handleVideo(video)
@@ -99,9 +146,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun pauseRecording() {
+        stopCamera()
+        pauseSongPlayer()
+    }
+
     private fun stopRecording() {
-        isRecording = false
-        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
+        stopCamera()
+        stopSongPlayer()
+    }
+
+    private fun stopCamera() {
         camera.stopVideo()
+    }
+
+    private fun toggleRecordingUI() {
+        if (!isRecording) {
+            isRecording = true
+            playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_pause))
+        } else {
+            isRecording = false
+            playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
+        }
     }
 }

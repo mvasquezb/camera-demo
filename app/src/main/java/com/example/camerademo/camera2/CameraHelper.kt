@@ -435,9 +435,6 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     }
 
     fun stop() {
-        if (videoCallback != null) {
-            stopRecording()
-        }
         closeCamera()
         stopBackgroundThread()
     }

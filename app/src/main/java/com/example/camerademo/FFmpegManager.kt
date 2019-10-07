@@ -15,7 +15,7 @@ object FFmpegManager {
                 "0"
             ))
         }
-        val tmpFilePaths = createTempFile(directory = saveDir, suffix = ".txt")
+        val tmpFilePaths = createTempFile(directory = saveDir, suffix = ".txt").apply { deleteOnExit() }
         val outStream = tmpFilePaths.outputStream()
         val writer = outStream.writer()
         filePaths.forEach {
@@ -33,7 +33,7 @@ object FFmpegManager {
         }
 
         // Temporary output file
-        val tempFile = createTempFile(suffix = extension, directory = saveDir)
+        val tempFile = createTempFile(suffix = extension, directory = saveDir).apply { deleteOnExit() }
         args.add(tempFile.absolutePath)
 
         FFmpeg.execute(args.toTypedArray())

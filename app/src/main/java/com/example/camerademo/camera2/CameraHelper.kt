@@ -559,7 +559,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
         if (cameraDevice == null) return
 
         try {
-            outputVideoFile = createTempFile(suffix = ".mp4")
+            outputVideoFile = createTempFile(suffix = ".mp4").apply { deleteOnExit() }
             this.videoCallback = videoCallback
 
             closePreviewSession()

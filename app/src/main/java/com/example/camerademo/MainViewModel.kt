@@ -6,11 +6,21 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import com.androidnetworking.AndroidNetworking
+import com.androidnetworking.common.Priority
+import com.androidnetworking.error.ANError
+import com.androidnetworking.interfaces.DownloadListener
+import com.example.camerademo.lrc.ExtendedLrcBuilder
+import com.example.camerademo.lrc.LrcFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
+    private val _lrcFile = MutableLiveData<LrcFile>()
+    val lrcFile: LiveData<LrcFile> = _lrcFile
     val song = Song.defaultSong
 
     var savedPath = ""
@@ -61,5 +71,38 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun getVideoFilePath(): String {
         return "${saveDir.absolutePath}/video_$numFiles.mp4"
+    }
+
+    fun downloadLrcFile() {
+        downloadLrcFile(song.lyric)
+    }
+
+    fun downloadLrcFile(url: String) {
+        _loading.value = true
+        viewModelScope.launch {
+            AndroidNetworking.download(url, saveDir.absolutePath, "lyrics.lrc")
+                .setPriority(Priority.IMMEDIATE)
+                .build()
+                .startDownload(object : DownloadListener {
+                    override fun onDownloadComplete() {
+                        viewModelScope.launch {
+                            val lrcFile = buildLrcFile()
+                            withContext(Dispatchers.Main) {
+                                _lrcFile.value = lrcFile
+                                _loading.value = true
+                            }
+                        }
+                    }
+
+                    override fun onError(anError: ANError?) {
+                        Log.e("ViewModel", "error: $anError")
+                    }
+                })
+        }
+    }
+
+    private fun buildLrcFile(): LrcFile {
+        val rows = ExtendedLrcBuilder().getLrcRows(File(saveDir, "lyrics.lrc"), 0.0)
+        return LrcFile(rows)
     }
 }

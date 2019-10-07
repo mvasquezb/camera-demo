@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
 import com.example.camerademo.camera2.events.CameraEventListener
 import com.example.camerademo.camera2.events.Error
+import com.example.camerademo.lrc.ILrcPlayer
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.launch
 
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
 
         setupVideoRecording()
         setupSongPlayer()
+        setupLrcPlayer()
 
         viewModel.loading.observe(this, Observer<Boolean> { loading ->
             when (loading) {
@@ -52,6 +54,23 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+        viewModel.lrcFile.observe(this, Observer {lrc ->
+            shimmerLayout.setLrc(lrc.rows)
+            shimmerLayout.initialFill()
+        })
+    }
+
+    private fun setupLrcPlayer() {
+        viewModel.downloadLrcFile()
+        shimmerLayout.setCallback(object : ILrcPlayer {
+            override fun timePassed(): Long = (this@MainActivity.songPlayer?.currentPosition ?: 0).toLong()
+
+            override fun newLine(index: Int) = Unit
+        })
+        shimmerLayout.setPaint(highlightedLyric.paint)
+        shimmerLayout.setHighlightedLyric(highlightedLyric)
+        shimmerLayout.setPreviousLyric(previousLyric)
+        shimmerLayout.setNextLyric(nextLyric)
     }
 
     private fun setupSongPlayer() {
@@ -134,6 +153,7 @@ class MainActivity : AppCompatActivity() {
     private fun onRecordingStart() {
         uiStartRecording()
         startSongPlayer()
+        startLrcPlayer()
         camera.startVideo { video ->
             Log.d(TAG, "video callback: ${video.absolutePath}")
             lifecycleScope.launch {
@@ -143,16 +163,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startLrcPlayer() {
+        if (viewModel.currentPosition != 0) {
+            shimmerLayout.resume()
+        } else {
+            shimmerLayout.startShimmerAnimation()
+        }
+    }
+
     private fun onRecordingPause() {
         uiPauseRecording()
         camera.stopVideo()
         pauseSongPlayer()
+        shimmerLayout.pause((songPlayer?.currentPosition ?: 0).toLong())
     }
 
     private fun onRecordingStop() {
         uiPauseRecording()
         camera.stop()
         stopSongPlayer()
+        shimmerLayout.pause((songPlayer?.currentPosition ?: 0).toLong())
     }
 
     private fun onRecordingFinish() {

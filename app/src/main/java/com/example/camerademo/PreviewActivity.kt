@@ -78,22 +78,4 @@ class PreviewActivity : AppCompatActivity() {
         val tracks = FFmpegManager.demuxVideoAudio(video, saveDir)
         return tracks
     }
-
-    private fun extractMediaTrack(extractor: MediaExtractor, trackIndex: Int): File {
-        val outFile = createTempFile(directory = saveDir)
-        val outStream = outFile.outputStream()
-        val channel = outStream.channel
-
-        extractor.selectTrack(trackIndex)
-        val buffer = ByteBuffer.allocate(2 * 1024 * 1024)
-        while (extractor.readSampleData(buffer, 0) >= 0) {
-            channel.write(buffer)
-            if (!buffer.hasRemaining()) {
-                buffer.clear()
-            }
-            extractor.advance()
-        }
-        channel.close()
-        return outFile
-    }
 }

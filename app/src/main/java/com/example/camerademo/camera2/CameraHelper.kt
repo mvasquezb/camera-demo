@@ -56,6 +56,7 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     private var cameraId: String = ""
     private var mediaRecorder: MediaRecorder? = null
     var facing: Int = Defaults.DEFAULT_FACING
+    private var isRecording = false
 
     private var manager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
@@ -435,6 +436,9 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     }
 
     fun stop() {
+        if (isRecording) {
+            stopRecording()
+        }
         closeCamera()
         stopBackgroundThread()
     }
@@ -444,6 +448,8 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
      */
     private fun closeCamera() {
         try {
+            captureSession?.close()
+            captureSession = null
             cameraOpenCloseLock.acquire()
             closePreviewSession()
             cameraDevice?.close()
@@ -582,6 +588,8 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                         captureSession = cameraCaptureSession
                         updatePreview()
+                        isRecording = true
+                        Log.d(TAG, "start video")
                         mediaRecorder?.start()
                     }
 
@@ -603,16 +611,19 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     }
 
     private fun stopRecording() {
+        Log.d(TAG, "Stop recording")
+        isRecording = false
         mediaRecorder?.apply {
             stop()
             reset()
         }
+        videoCallback?.invoke(outputVideoFile)
+        videoCallback = null
     }
 
     fun stopVideo() {
+        Log.d(TAG, "Stop video")
         stopRecording()
-        videoCallback?.invoke(outputVideoFile)
-        videoCallback = null
         startPreview()
     }
 }

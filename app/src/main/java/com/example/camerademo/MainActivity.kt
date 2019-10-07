@@ -71,19 +71,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        toggleRecordingUI()
-        stopSongPlayer()
-        camera.stop()
+        onRecordingStop()
         super.onPause()
     }
 
     private fun stopSongPlayer(reset: Boolean = true) {
         songPlayer?.runCatching {
             viewModel.currentPosition = currentPosition
-            stop()
-            if (reset) {
-                reset()
-            }
             release()
         }
         songPlayer = null
@@ -91,6 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun pauseSongPlayer() {
         songPlayer?.runCatching {
+            viewModel.currentPosition = currentPosition
             pause()
         }
     }
@@ -108,7 +103,7 @@ class MainActivity : AppCompatActivity() {
             toggleRecording()
         }
         finishButton.setOnClickListener {
-            finishRecording()
+            onRecordingFinish()
         }
         camera.addEventListener(object : CameraEventListener {
             override fun onError(error: Error) {
@@ -118,55 +113,54 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun finishRecording() {
-        if (isRecording) {
-            stopRecording()
-        }
-        lifecycleScope.launch {
-            viewModel.processVideos()
-        }
-    }
-
     private fun toggleRecording() {
         if (!isRecording) {
-            startRecording()
+            onRecordingStart()
         } else {
-            pauseRecording()
+            onRecordingPause()
         }
     }
 
-    private fun startRecording() {
-        toggleRecordingUI()
+    private fun uiStartRecording() {
+        isRecording = true
+        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_pause))
+    }
+
+    private fun uiPauseRecording() {
+        isRecording = false
+        playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
+    }
+
+    private fun onRecordingStart() {
+        uiStartRecording()
         startSongPlayer()
         camera.startVideo { video ->
+            Log.d(TAG, "video callback: ${video.absolutePath}")
             lifecycleScope.launch {
-                viewModel.handleVideo(video)
                 showToast("Video saved: ${viewModel.getVideoFilePath()}")
+                viewModel.handleVideo(video)
             }
         }
     }
 
-    private fun pauseRecording() {
-        stopCamera()
+    private fun onRecordingPause() {
+        uiPauseRecording()
+        camera.stopVideo()
         pauseSongPlayer()
     }
 
-    private fun stopRecording() {
-        stopCamera()
+    private fun onRecordingStop() {
+        uiPauseRecording()
+        camera.stop()
         stopSongPlayer()
     }
 
-    private fun stopCamera() {
-        camera.stopVideo()
-    }
-
-    private fun toggleRecordingUI() {
-        if (!isRecording) {
-            isRecording = true
-            playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_pause))
-        } else {
-            isRecording = false
-            playButton.setImageDrawable(getDrawable(android.R.drawable.ic_media_play))
+    private fun onRecordingFinish() {
+        if (isRecording) {
+            onRecordingStop()
+        }
+        lifecycleScope.launch {
+            viewModel.processVideos()
         }
     }
 }

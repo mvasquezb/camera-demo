@@ -2,6 +2,7 @@ package com.example.camerademo
 
 import android.app.Application
 import android.os.Environment
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -42,6 +43,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun processVideos() {
         _loading.value = true
+        Log.d("viewmodel", "files: $numFiles")
         withContext(Dispatchers.IO) {
             val files = (0 until numFiles).map {
                 File(saveDir, "video_$it.mp4").absolutePath

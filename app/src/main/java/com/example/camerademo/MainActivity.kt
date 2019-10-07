@@ -2,7 +2,12 @@ package com.example.camerademo
 
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -13,7 +18,8 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
 import com.example.camerademo.camera2.events.CameraEventListener
 import com.example.camerademo.camera2.events.Error
-import com.example.camerademo.lrc.ILrcPlayer
+import com.example.camerademo.lrc.LrcFile
+import com.example.camerademo.lrc.LrcRow
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.launch
 
@@ -23,6 +29,10 @@ class MainActivity : AppCompatActivity() {
         @JvmStatic val TAG = MainActivity::class.java.simpleName
     }
 
+    private var lyricsTimer: CountDownTimer? = null
+    private lateinit var lrcFile: LrcFile
+    private var rowIndex: Int = 0
+    private var wordIndex: Int = 0
     private var isRecording = false
     private lateinit var viewModel: MainViewModel
     private var songPlayer: MediaPlayer? = null
@@ -55,22 +65,16 @@ class MainActivity : AppCompatActivity() {
             }
         })
         viewModel.lrcFile.observe(this, Observer {lrc ->
-            shimmerLayout.setLrc(lrc.rows)
-            shimmerLayout.initialFill()
+            previousLyric.text = ""
+            highlightedLyric.text = lrc.rows[rowIndex].fullSentence()
+            rowIndex++
+            nextLyric.text = lrc.rows[rowIndex].fullSentence()
+            lrcFile = lrc
         })
     }
 
     private fun setupLrcPlayer() {
         viewModel.downloadLrcFile()
-        shimmerLayout.setCallback(object : ILrcPlayer {
-            override fun timePassed(): Long = (this@MainActivity.songPlayer?.currentPosition ?: 0).toLong()
-
-            override fun newLine(index: Int) = Unit
-        })
-        shimmerLayout.setPaint(highlightedLyric.paint)
-        shimmerLayout.setHighlightedLyric(highlightedLyric)
-        shimmerLayout.setPreviousLyric(previousLyric)
-        shimmerLayout.setNextLyric(nextLyric)
     }
 
     private fun setupSongPlayer() {
@@ -164,25 +168,96 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startLrcPlayer() {
-        if (viewModel.currentPosition != 0) {
-            shimmerLayout.resume()
-        } else {
-            shimmerLayout.startShimmerAnimation()
-        }
+        val remainingTime = lrcFile.timeLength.toLong() - viewModel.currentPosition
+        lyricsTimer = object : CountDownTimer(remainingTime, 10) {
+            override fun onFinish() {
+                Log.e("TimerTesting", "Time ended")
+            }
+
+            override fun onTick(millisUntilFinished: Long) {
+                if (isNextWordTime(lrcFile, rowIndex, wordIndex, millisUntilFinished)) {
+                    changeToNextWord(lrcFile.rows[rowIndex], wordIndex)
+                    wordIndex++
+                }
+
+                if (isNextRowTime(lrcFile, rowIndex, millisUntilFinished)) {
+                    changeToNextRow(lrcFile, rowIndex)
+                    rowIndex++
+                    wordIndex = 0
+                }
+            }
+        }.start()
     }
+
+    /** START LRC Player time **/
+    private fun isNextWordTime(lrcFile: LrcFile, rowIndex: Int, wordIndex: Int, millisUntilFinished: Long): Boolean {
+        if (wordIndex == lrcFile.rows[rowIndex].words.size) return false
+        Log.e("TimerTesting", "Row index $rowIndex")
+        Log.e("TimerTesting", "Word index $wordIndex")
+        Log.e("TimerTesting", "Evaluate startTime ${lrcFile.rows[rowIndex].startTime}")
+        val currentTime = lrcFile.timeLength - millisUntilFinished
+        val nextWordTime = lrcFile.rows[rowIndex].words[wordIndex].endTime.toLong()
+        Log.e("TimerTesting", "Evaluate current $currentTime")
+        Log.e("TimerTesting", "Evaluate nextword $nextWordTime")
+        Log.e("TimerTesting", "Evaluate endTime ${lrcFile.rows[rowIndex + 1].startTime}")
+        Log.e("TimerTesting", "Before result ${currentTime > nextWordTime}")
+        return currentTime >= nextWordTime
+    }
+
+    private fun changeToNextWord(lrcRow: LrcRow, wordIndex: Int) {
+        var coloredSentence = ""
+        lrcRow.words.forEachIndexed { index, lrcWord ->
+            coloredSentence += lrcWord.word + " "
+            if (index > wordIndex) {
+                return@forEachIndexed
+            }
+        }
+        val spannableString = SpannableString(lrcRow.fullSentence())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            spannableString.setSpan(
+                ForegroundColorSpan(getColor(R.color.colorPrimaryDark)),
+                0,
+                coloredSentence.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        } else {
+            spannableString.setSpan(
+                ForegroundColorSpan(resources.getColor(R.color.colorPrimaryDark)),
+                0,
+                coloredSentence.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        Log.e("TimerTesting", "Colored sentence $coloredSentence")
+        highlightedLyric.text = spannableString
+    }
+
+    private fun isNextRowTime(lrcFile: LrcFile, rowIndex: Int, millisUntilFinished: Long) =
+        lrcFile.timeLength - millisUntilFinished >= lrcFile.rows[rowIndex + 1].startTime.toLong()
+
+    private fun changeToNextRow(lrcFile: LrcFile, index: Int) {
+        previousLyric.text = lrcFile.rows[index - 1].fullSentence()
+        highlightedLyric.text = lrcFile.rows[index].fullSentence()
+        nextLyric.text = lrcFile.rows[index + 1].fullSentence()
+    }
+
+    private fun stopLrcPlayer() {
+        lyricsTimer?.cancel()
+    }
+    /** END LRC Player time **/
 
     private fun onRecordingPause() {
         uiPauseRecording()
         camera.stopVideo()
         pauseSongPlayer()
-        shimmerLayout.pause((songPlayer?.currentPosition ?: 0).toLong())
+        stopLrcPlayer()
     }
 
     private fun onRecordingStop() {
         uiPauseRecording()
         camera.stop()
         stopSongPlayer()
-        shimmerLayout.pause((songPlayer?.currentPosition ?: 0).toLong())
+        stopLrcPlayer()
     }
 
     private fun onRecordingFinish() {

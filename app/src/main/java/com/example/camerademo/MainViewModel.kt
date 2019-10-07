@@ -11,7 +11,6 @@ import com.androidnetworking.AndroidNetworking
 import com.androidnetworking.common.Priority
 import com.androidnetworking.error.ANError
 import com.androidnetworking.interfaces.DownloadListener
-import com.example.camerademo.lrc.ExtendedLrcBuilder
 import com.example.camerademo.lrc.LrcFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,10 +85,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .startDownload(object : DownloadListener {
                     override fun onDownloadComplete() {
                         viewModelScope.launch {
-                            val lrcFile = buildLrcFile()
-                            withContext(Dispatchers.Main) {
-                                _lrcFile.value = lrcFile
-                                _loading.value = true
+                            withContext(Dispatchers.IO) {
+                                val lrcFile = buildLrcFile()
+                                withContext(Dispatchers.Main) {
+                                    _lrcFile.value = lrcFile
+                                    _loading.value = false
+                                }
                             }
                         }
                     }
@@ -102,7 +103,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun buildLrcFile(): LrcFile {
-        val rows = ExtendedLrcBuilder().getLrcRows(File(saveDir, "lyrics.lrc"), 0.0)
-        return LrcFile(rows)
+        return LrcFile(File(saveDir, "lyrics.lrc"))
     }
 }

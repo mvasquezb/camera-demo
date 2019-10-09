@@ -16,7 +16,7 @@ class LrcRow(row: String) {
                 LrcWord(
                     row.substring(wordStart + 1, wordEnd),
                     stringToMillisecond(row.substring(timeStart + 1, timeEnd))
-            )
+                )
             )
             if (row.indexOf(">", timeEnd + 1) != -1) {
                 wordStart = timeEnd + 1

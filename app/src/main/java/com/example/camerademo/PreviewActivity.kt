@@ -24,6 +24,8 @@ class PreviewActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_preview)
         setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         videoPath = intent.getStringExtra("video")!!
         saveDir = File(intent.getStringExtra("saveDir")!!)

@@ -10,6 +10,8 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
         @JvmStatic val TAG = MainActivity::class.java.simpleName
     }
 
+    private var lrcRemainingTime: Long = 0
     private var lyricsTimer: CountDownTimer? = null
     private lateinit var lrcFile: LrcFile
     private var rowIndex: Int = 0
@@ -46,7 +49,8 @@ class MainActivity : AppCompatActivity() {
         setupVideoRecording()
         setupSongPlayer()
         setupLrcPlayer()
-
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                or WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON)
         viewModel.loading.observe(this, Observer<Boolean> { loading ->
             when (loading) {
                 true -> loadingBar.visibility = View.VISIBLE
@@ -67,8 +71,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.lrcFile.observe(this, Observer {lrc ->
             previousLyric.text = ""
             highlightedLyric.text = lrc.rows[rowIndex].fullSentence()
-            rowIndex++
-            nextLyric.text = lrc.rows[rowIndex].fullSentence()
+            nextLyric.text = lrc.rows[rowIndex + 1].fullSentence()
             lrcFile = lrc
         })
     }
@@ -167,20 +170,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** START LRC Player time **/
     private fun startLrcPlayer() {
-        val remainingTime = lrcFile.timeLength.toLong() - viewModel.currentPosition
-        lyricsTimer = object : CountDownTimer(remainingTime, 10) {
+        if (lrcRemainingTime == 0L) {
+            lrcRemainingTime = songPlayer?.duration?.toLong() ?: 0
+        }
+        lyricsTimer = object : CountDownTimer(lrcRemainingTime, 10) {
             override fun onFinish() {
                 Log.e("TimerTesting", "Time ended")
             }
 
             override fun onTick(millisUntilFinished: Long) {
                 if (isNextWordTime(lrcFile, rowIndex, wordIndex, millisUntilFinished)) {
+                    lrcRemainingTime = millisUntilFinished
                     changeToNextWord(lrcFile.rows[rowIndex], wordIndex)
                     wordIndex++
-                }
-
-                if (isNextRowTime(lrcFile, rowIndex, millisUntilFinished)) {
+                } else if (isNextRowTime(lrcFile, rowIndex, millisUntilFinished)) {
                     changeToNextRow(lrcFile, rowIndex)
                     rowIndex++
                     wordIndex = 0
@@ -189,29 +194,20 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** START LRC Player time **/
     private fun isNextWordTime(lrcFile: LrcFile, rowIndex: Int, wordIndex: Int, millisUntilFinished: Long): Boolean {
-        if (wordIndex == lrcFile.rows[rowIndex].words.size) return false
-        Log.e("TimerTesting", "Row index $rowIndex")
-        Log.e("TimerTesting", "Word index $wordIndex")
-        Log.e("TimerTesting", "Evaluate startTime ${lrcFile.rows[rowIndex].startTime}")
+        if (wordIndex == lrcFile.rows[rowIndex].words.size) {
+            return false
+        }
         val currentTime = lrcFile.timeLength - millisUntilFinished
         val nextWordTime = lrcFile.rows[rowIndex].words[wordIndex].endTime.toLong()
-        Log.e("TimerTesting", "Evaluate current $currentTime")
-        Log.e("TimerTesting", "Evaluate nextword $nextWordTime")
-        Log.e("TimerTesting", "Evaluate endTime ${lrcFile.rows[rowIndex + 1].startTime}")
-        Log.e("TimerTesting", "Before result ${currentTime > nextWordTime}")
         return currentTime >= nextWordTime
     }
 
     private fun changeToNextWord(lrcRow: LrcRow, wordIndex: Int) {
-        var coloredSentence = ""
-        lrcRow.words.forEachIndexed { index, lrcWord ->
-            coloredSentence += lrcWord.word + " "
-            if (index > wordIndex) {
-                return@forEachIndexed
-            }
-        }
+        val coloredSentence = lrcRow.words
+            .take(wordIndex + 1)
+            .joinToString(" ") { it.word }
+        Log.d(TAG, "colored sentence: $coloredSentence")
         val spannableString = SpannableString(lrcRow.fullSentence())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             spannableString.setSpan(
@@ -233,12 +229,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isNextRowTime(lrcFile: LrcFile, rowIndex: Int, millisUntilFinished: Long) =
+        rowIndex + 1 < lrcFile.rows.size &&
         lrcFile.timeLength - millisUntilFinished >= lrcFile.rows[rowIndex + 1].startTime.toLong()
 
     private fun changeToNextRow(lrcFile: LrcFile, index: Int) {
-        previousLyric.text = lrcFile.rows[index - 1].fullSentence()
-        highlightedLyric.text = lrcFile.rows[index].fullSentence()
-        nextLyric.text = lrcFile.rows[index + 1].fullSentence()
+        val rowsLeft = lrcFile.rows.size - index - 1
+        if (rowsLeft >= 1) {
+            previousLyric.text = lrcFile.rows[index].fullSentence()
+            highlightedLyric.text = lrcFile.rows[index + 1].fullSentence()
+        }
+        if (rowsLeft >= 2) {
+            nextLyric.text = lrcFile.rows[index + 2].fullSentence()
+        } else {
+            nextLyric.text = ""
+        }
     }
 
     private fun stopLrcPlayer() {

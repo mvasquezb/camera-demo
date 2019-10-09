@@ -73,6 +73,8 @@ class MainActivity : AppCompatActivity() {
             highlightedLyric.text = lrc.rows[rowIndex].fullSentence()
             nextLyric.text = lrc.rows[rowIndex + 1].fullSentence()
             lrcFile = lrc
+            val firstLyricTime = lrc.rows[rowIndex].startTime.toLong().millisToString()
+            timer.text = "Lyrics start at\n$firstLyricTime"
         })
     }
 

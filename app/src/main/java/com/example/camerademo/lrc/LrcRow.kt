@@ -15,7 +15,8 @@ class LrcRow(row: String) {
             words.add(
                 LrcWord(
                     row.substring(wordStart + 1, wordEnd),
-                    stringToMillisecond(row.substring(timeStart + 1, timeEnd))
+                    stringToMillisecond(row.substring(timeStart + 1, timeEnd)),
+                    row.substring(timeStart + 1, timeEnd)
                 )
             )
             if (row.indexOf(">", timeEnd + 1) != -1) {

@@ -613,12 +613,26 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     private fun stopRecording() {
         Log.d(TAG, "Stop recording")
         isRecording = false
-        mediaRecorder?.apply {
-            stop()
-            reset()
+        try {
+            mediaRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+            mediaRecorder = null
+            videoCallback?.invoke(outputVideoFile)
+            videoCallback = null
+        } catch (e: RuntimeException) {
+            // When stopping right after starting recording
+            // Do not include invoke callback
+            Log.e(TAG, "Stopped right after starting")
+            mediaRecorder?.apply {
+                reset()
+                release()
+            }
+            mediaRecorder = null
+            eventDispatcher.dispatch(Error(e))
         }
-        videoCallback?.invoke(outputVideoFile)
-        videoCallback = null
     }
 
     fun stopVideo() {

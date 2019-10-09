@@ -3,6 +3,7 @@ package com.example.camerademo
 import android.media.*
 import android.os.Bundle
 import android.util.Log
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +20,8 @@ class PreviewActivity : AppCompatActivity() {
 
     private lateinit var saveDir: File
     private lateinit var videoPath: String
+    private var songPlayer: MediaPlayer? = null
+    val song = Song.defaultSong
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +41,47 @@ class PreviewActivity : AppCompatActivity() {
 
         videoPlayer.setVideoPath(videoPath)
         videoPlayer.setOnCompletionListener { videoPlayer.start() }
+    }
+
+    override fun onResume() {
+        startSongPlayer()
         videoPlayer.start()
+        super.onResume()
+    }
+
+    private fun startSongPlayer() {
+        setupSongPlayer()
+        songPlayer?.start()
+    }
+
+    override fun onPause() {
+        stopSongPlayer()
+        videoPlayer.stopPlayback()
+        super.onPause()
+
+    }
+
+    private fun stopSongPlayer() {
+        songPlayer?.release()
+        songPlayer = null
+    }
+
+    private fun setupSongPlayer() {
+        songPlayer = MediaPlayer().apply {
+            setDataSource(song.mp3)
+            isLooping = true
+            prepare()
+        }
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private suspend fun testVideoMuxDemux() {

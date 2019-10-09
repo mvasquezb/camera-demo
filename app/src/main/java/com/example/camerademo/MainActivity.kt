@@ -86,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         songPlayer = MediaPlayer().apply {
             setDataSource(viewModel.song.mp3)
             prepare()
+            setVolume(0.3f, 0.3f)
             if (viewModel.currentPosition != 0) {
                 seekTo(viewModel.currentPosition)
             }
@@ -106,6 +107,7 @@ class MainActivity : AppCompatActivity() {
     private fun stopSongPlayer(reset: Boolean = true) {
         songPlayer?.runCatching {
             viewModel.currentPosition = currentPosition
+            stop()
             release()
         }
         songPlayer = null
@@ -175,7 +177,7 @@ class MainActivity : AppCompatActivity() {
     /** START LRC Player time **/
     private fun startLrcPlayer() {
         if (lrcRemainingTime == 0L) {
-            lrcRemainingTime = songPlayer?.duration?.toLong() ?: 0
+            lrcRemainingTime = lrcFile.timeLength.toLong()
         }
         lyricsTimer = object : CountDownTimer(lrcRemainingTime, 10) {
             override fun onFinish() {
@@ -200,8 +202,11 @@ class MainActivity : AppCompatActivity() {
         if (wordIndex == lrcFile.rows[rowIndex].words.size) {
             return false
         }
+        if (wordIndex == 0) {
+            return true
+        }
         val currentTime = lrcFile.timeLength - millisUntilFinished
-        val nextWordTime = lrcFile.rows[rowIndex].words[wordIndex].endTime.toLong()
+        val nextWordTime = lrcFile.rows[rowIndex].words[wordIndex - 1].endTime.toLong()
         return currentTime >= nextWordTime
     }
 
@@ -209,7 +214,6 @@ class MainActivity : AppCompatActivity() {
         val coloredSentence = lrcRow.words
             .take(wordIndex + 1)
             .joinToString(" ") { it.word }
-        Log.d(TAG, "colored sentence: $coloredSentence")
         val spannableString = SpannableString(lrcRow.fullSentence())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             spannableString.setSpan(

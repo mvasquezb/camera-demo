@@ -40,7 +40,14 @@ class PreviewActivity : AppCompatActivity() {
         }
 
         videoPlayer.setVideoPath(videoPath)
-        videoPlayer.setOnCompletionListener { videoPlayer.start() }
+        videoPlayer.setOnCompletionListener {
+            songPlayer?.runCatching {
+                stop()
+                reset()
+                start()
+            }
+            videoPlayer.start()
+        }
     }
 
     override fun onResume() {
@@ -71,6 +78,7 @@ class PreviewActivity : AppCompatActivity() {
             setDataSource(song.mp3)
             isLooping = true
             prepare()
+            setVolume(0.2f, 0.2f)
         }
     }
 
@@ -89,8 +97,8 @@ class PreviewActivity : AppCompatActivity() {
             val video = File(videoPath)
             val tracks = demuxVideo(video)
 
-            val videoTrack = tracks["video"]!!
-            val audioTrack = tracks["audio"]!!
+            val videoTrack = tracks["video"] ?: error("Video track missing")
+            val audioTrack = tracks["audio"] ?: error("Audio track missing")
 
             videoTrack.apply {
                 val outFile = File(saveDir, "demuxedVideo.mp4")

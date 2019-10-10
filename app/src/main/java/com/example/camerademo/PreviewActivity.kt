@@ -7,6 +7,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.camerademo.upload.UploadManager
 
 import kotlinx.android.synthetic.main.activity_preview.*
 import kotlinx.android.synthetic.main.content_preview.*
@@ -100,21 +101,28 @@ class PreviewActivity : AppCompatActivity() {
             val videoTrack = tracks["video"] ?: error("Video track missing")
             val audioTrack = tracks["audio"] ?: error("Audio track missing")
 
+            val fileMap = mutableMapOf<String, File>()
+
             videoTrack.apply {
                 val outFile = File(saveDir, "demuxedVideo.mp4")
                 this.copyTo(outFile, true)
+                fileMap[outFile.name] = outFile
             }
 
             audioTrack.apply {
                 val outFile = File(saveDir, "demuxedAudio.m4a")
                 this.copyTo(outFile, true)
+                fileMap[outFile.name] = outFile
             }
 
             val newVideo = muxVideo(videoTrack, audioTrack)
             newVideo.apply {
                 val outFile = File(saveDir, "remuxedVideo.mp4")
                 this.copyTo(outFile, true)
+                fileMap[outFile.name] = outFile
             }
+
+            UploadManager.uploadMultipleMultipart(this@PreviewActivity, fileMap)
 
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@PreviewActivity, "Video files ready", Toast.LENGTH_SHORT).show()

@@ -35,6 +35,9 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0-alpha05'
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'com.amitshekhar.android:android-networking:1.0.2'
+    implementation "com.squareup.okhttp3:okhttp:4.2.1"
+    implementation "net.gotev:uploadservice:3.5.2"
+    implementation "net.gotev:uploadservice-okhttp:3.5.2"
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'

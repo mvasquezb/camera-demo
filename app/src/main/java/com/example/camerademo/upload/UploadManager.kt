@@ -10,7 +10,7 @@ import java.io.File
 object UploadManager {
     @JvmStatic val TAG = UploadManager::class.java.simpleName
 
-    @JvmStatic val SERVER = "http://192.168.86.31:4000"
+    @JvmStatic val SERVER = "https://ks-video2.karaokesmart.co"
 
     fun uploadMultipart(context: Context, file: File, paramName: String) {
         try {

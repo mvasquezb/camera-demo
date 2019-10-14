@@ -6,6 +6,8 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
+import android.media.AudioManager
+import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Environment
@@ -54,6 +56,8 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     private lateinit var outputVideoFile: File
     lateinit var texture: TextureView
     private var cameraId: String = ""
+    private val camIdNum: Int?
+        get() = cameraId.toIntOrNull()
     private var mediaRecorder: MediaRecorder? = null
     var facing: Int = Defaults.DEFAULT_FACING
     private var isRecording = false
@@ -379,10 +383,22 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
 
         sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
 
-        videoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder::class.java), size)
+        var camProfile: CamcorderProfile? = null
+        if (camIdNum != null && CamcorderProfile.hasProfile(camIdNum!!, CamcorderProfile.QUALITY_480P)) {
+            camProfile = CamcorderProfile.get(camIdNum!!, CamcorderProfile.QUALITY_480P)
+            Log.d(TAG, "camProfile size: (${camProfile.videoFrameWidth}, ${camProfile.videoFrameHeight})")
+        }
+
+        val realSize = if (camProfile == null) {
+            size
+        } else {
+            Size(camProfile.videoFrameWidth, camProfile.videoFrameHeight)
+        }
+
+        videoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder::class.java), realSize)
         Log.d(TAG, "videoSize: $videoSize")
         previewSize = chooseOptimalSize(
-            map.getOutputSizes(SurfaceTexture::class.java), size.height, size.width, videoSize)
+            map.getOutputSizes(SurfaceTexture::class.java), realSize.height, realSize.width, videoSize)
         Log.d(TAG, "previewSize: $previewSize")
 
         return previewSize
@@ -535,22 +551,43 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     private fun setUpMediaRecorder() {
         mediaRecorder = MediaRecorder()
         val rotation = (context as Activity).windowManager.defaultDisplay.rotation
+        Log.d(TAG, "sensor orientation: $sensorOrientation, rotation: $rotation")
         when (sensorOrientation) {
             SENSOR_ORIENTATION_DEFAULT_DEGREES ->
                 mediaRecorder?.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation))
             SENSOR_ORIENTATION_INVERSE_DEGREES ->
                 mediaRecorder?.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation))
         }
+
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val nativeSampleRate = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
+
         mediaRecorder?.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setOutputFile(outputVideoFile.absolutePath)
-            setVideoEncodingBitRate(10000000)
-            setVideoFrameRate(30)
+            setAudioSamplingRate(nativeSampleRate.toInt())
+            setAudioChannels(1)
+            setAudioEncodingBitRate(128000)
+            if (CamcorderProfile.hasProfile(camIdNum!!, CamcorderProfile.QUALITY_480P)) {
+                val profile = CamcorderProfile.get(
+                    camIdNum!!,
+                    CamcorderProfile.QUALITY_480P)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setVideoEncoder(profile.videoCodec)
+                setAudioEncoder(profile.audioCodec)
+                setVideoEncodingBitRate(profile.videoBitRate)
+                setVideoFrameRate(10)
+                Log.d(TAG, "Camcorder 480p size: (${profile.videoFrameWidth}, ${profile.videoFrameHeight})")
+//                setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight)
+            } else {
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setVideoEncodingBitRate(10000000)
+                setVideoFrameRate(10)
+            }
             setVideoSize(videoSize.width, videoSize.height)
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(outputVideoFile.absolutePath)
             prepare()
         }
     }
@@ -584,7 +621,6 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
             // Once the session starts, we can update the UI and start recording
             cameraDevice?.createCaptureSession(surfaces,
                 object : CameraCaptureSession.StateCallback() {
-
                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                         captureSession = cameraCaptureSession
                         updatePreview()
@@ -594,14 +630,16 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
                     }
 
                     override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
+                        Log.e(TAG, "Configure failed: $cameraCaptureSession")
                         eventDispatcher.dispatch(Error())
                     }
                 }, backgroundHandler)
         } catch (e: CameraAccessException) {
-            Log.e(TAG, e.toString())
-
+            Log.e(TAG, "CameraAccessError: $e")
+            eventDispatcher.dispatch(Error(e))
         } catch (e: IOException) {
-            Log.e(TAG, e.toString())
+            Log.e(TAG, "IOException: $e")
+            eventDispatcher.dispatch(Error(e))
         }
     }
 

@@ -76,7 +76,7 @@ class PreviewActivity : AppCompatActivity() {
     private fun setupSongPlayer() {
         songPlayer = MediaPlayer().apply {
             setDataSource(song.mp3)
-            isLooping = true
+//            isLooping = true
             prepare()
             setVolume(0.2f, 0.2f)
         }

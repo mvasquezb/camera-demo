@@ -18,7 +18,7 @@
         android:gravity="center"
         android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/camera"
+        app:layout_constraintBottom_toTopOf="@id/cameraWrapper"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent">
 
@@ -48,16 +48,34 @@
 
     </LinearLayout>
 
-    <com.example.camerademo.camera2.view.CameraView
-        android:id="@+id/camera"
-        android:layout_width="240dp"
+    <LinearLayout
+        android:id="@+id/cameraWrapper"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:camFacing="front"
-        android:layout_marginBottom="16dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/shimmerBg"
-        app:layout_constraintBottom_toTopOf="@id/playButton"/>
+        app:layout_constraintBottom_toTopOf="@id/playButton">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <com.example.camerademo.camera2.view.CameraView
+            android:id="@+id/camera"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            app:camFacing="front"
+            app:camCropAspect="true"
+            android:layout_marginBottom="16dp"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/timer"
@@ -78,7 +96,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_media_play"
-        app:layout_constraintTop_toBottomOf="@id/camera"
+        app:layout_constraintTop_toBottomOf="@id/cameraWrapper"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"

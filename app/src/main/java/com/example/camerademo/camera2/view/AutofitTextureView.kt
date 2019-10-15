@@ -30,7 +30,11 @@ open class AutofitTextureView @JvmOverloads constructor(
     }
 
     fun getAspectRatio(): Double {
-        return ratioHeight.toDouble() / ratioWidth
+        return if (ratioHeight == 0 && ratioWidth == 0) {
+            0.0
+        } else {
+            ratioHeight.toDouble() / ratioWidth
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

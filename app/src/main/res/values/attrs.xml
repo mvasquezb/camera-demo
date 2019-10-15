@@ -5,6 +5,7 @@
             <enum name="back" value="0" />
             <enum name="front" value="1" />
         </attr>
-        <attr name="android:adjustViewBounds" />
+        <attr name="android:adjustViewBounds" format="boolean" />
+        <attr name="camCropSquare" format="boolean" />
     </declare-styleable>
 </resources>

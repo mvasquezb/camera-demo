@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.media.AudioManager
@@ -61,6 +62,8 @@ class CameraHelper(val context: Context, val eventDispatcher: EventDispatcher) {
     private var mediaRecorder: MediaRecorder? = null
     var facing: Int = Defaults.DEFAULT_FACING
     private var isRecording = false
+    var zoomLevel = 1
+    private var zoomRect: Rect? = null
 
     private var manager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 

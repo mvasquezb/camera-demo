@@ -95,6 +95,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        camera.setAspectRatio(1, 2)
         camera.start()
         setupSongPlayer()
     }

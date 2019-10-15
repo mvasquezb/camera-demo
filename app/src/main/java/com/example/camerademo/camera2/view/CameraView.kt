@@ -15,7 +15,6 @@ import com.example.camerademo.camera2.VideoCallback
 import com.example.camerademo.camera2.events.CameraEventListener
 import com.example.camerademo.camera2.events.EventDispatcher
 import kotlin.math.max
-import kotlin.math.min
 
 
 open class CameraView @JvmOverloads constructor(
@@ -34,6 +33,10 @@ open class CameraView @JvmOverloads constructor(
 
     private val cropSquare: Boolean = styledAttrs.getBoolean(
         R.styleable.CameraView_camCropSquare, Defaults.DEFAULT_CROP_SQUARE
+    )
+
+    private val cropAspect: Boolean = styledAttrs.getBoolean(
+        R.styleable.CameraView_camCropAspect, Defaults.DEFAULT_CROP_ASPECT
     )
 
     var facing: Int = 0
@@ -83,7 +86,7 @@ open class CameraView @JvmOverloads constructor(
         previewSize.let {
             if (cropSquare) {
                 setAspectRatio(1, 1)
-            } else {
+            } else if (getAspectRatio() <= 0.0) {
                 setAspectRatio(it.height, it.width)
             }
             configureTransform(this.width, this.height, previewSize)
@@ -135,6 +138,44 @@ open class CameraView @JvmOverloads constructor(
                 scaleX = viewHeight / mVideoHeight / (viewWidth / mVideoWidth)
             }
             matrix.setScale(scaleX * 0.65f, scaleY * 0.65f, centerX, centerY)
+        } else if (cropAspect) {
+//            val videoWidth = bufferRect.width()
+//            val videoHeight = bufferRect.height()
+
+            var scaleX = 1f
+            var scaleY = 1f
+
+            val videoWidth = bufferRect.width()
+            val videoHeight = bufferRect.height()
+            if (videoWidth > viewWidth && videoHeight > viewHeight) {
+                scaleX = videoWidth / viewWidth.toFloat()
+                scaleY = videoHeight / viewHeight.toFloat()
+            } else if (videoWidth < viewWidth && videoHeight < viewHeight) {
+                scaleY = viewWidth / videoWidth
+                scaleX = viewHeight / videoHeight
+            } else if (viewWidth > videoWidth) {
+                scaleY = viewWidth / videoWidth / (viewHeight / videoHeight)
+            } else if (viewHeight > videoHeight) {
+                scaleX = viewHeight / videoHeight / (viewWidth / videoWidth)
+            }
+
+            val aspectRatio = getAspectRatio()
+            val newWidth: Int
+            val newHeight: Int
+            if (viewHeight > (viewWidth * aspectRatio).toInt()) {
+                // limited by narrow width; restrict height
+                newWidth = viewWidth
+                newHeight = (viewWidth * aspectRatio).toInt()
+            } else {
+                // limited by short height; restrict width
+                newWidth = (viewHeight / aspectRatio).toInt()
+                newHeight = viewHeight
+            }
+
+            scaleX *= newWidth.toFloat() / viewWidth
+            scaleY *= newHeight.toFloat() / viewHeight
+
+            matrix.setScale(scaleX * 0.8f, scaleY * 0.8f, centerX, centerY)
         }
 
         setTransform(matrix)

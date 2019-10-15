@@ -29,6 +29,10 @@ open class AutofitTextureView @JvmOverloads constructor(
         requestLayout()
     }
 
+    fun getAspectRatio(): Double {
+        return ratioHeight.toDouble() / ratioWidth
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val width = MeasureSpec.getSize(widthMeasureSpec)

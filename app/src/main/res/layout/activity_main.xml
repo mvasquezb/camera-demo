@@ -50,10 +50,9 @@
 
     <com.example.camerademo.camera2.view.CameraView
         android:id="@+id/camera"
-        android:layout_width="wrap_content"
+        android:layout_width="240dp"
         android:layout_height="wrap_content"
         app:camFacing="front"
-        app:camCropSquare="true"
         android:layout_marginBottom="16dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
